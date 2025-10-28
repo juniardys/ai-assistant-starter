@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -7,10 +7,12 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { user, loading, signIn, isAuthenticated, error, clearError } = useAuth();
 
   const quickActions = [
     {
@@ -46,6 +48,54 @@ export default function HomeScreen() {
       onPress: () => router.push('/(tabs)/notes'),
     },
   ];
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+      </View>
+    );
+  }
+
+  // Handle unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <ThemedView style={styles.content}>
+            <View style={styles.authPromptContainer}>
+              <Ionicons name="person-circle-outline" size={80} color={Colors.light.primary} />
+              <ThemedText type="title" style={styles.title}>
+                {t('home.welcome')}
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                {t('home.subtitle')}
+              </ThemedText>
+
+              {error && (
+                <View style={styles.errorContainer}>
+                  <ThemedText style={styles.errorText}>{error}</ThemedText>
+                  <TouchableOpacity style={styles.retryButton} onPress={clearError}>
+                    <ThemedText style={styles.retryButtonText}>Dismiss</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.signInButton}
+                onPress={() => router.push('/login')}
+              >
+                <Ionicons name="log-in-outline" size={20} color="#fff" style={styles.buttonIcon} />
+                <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ThemedView>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -197,5 +247,68 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
     fontStyle: 'italic',
+  },
+  // Authentication related styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  authPromptContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  errorContainer: {
+    backgroundColor: '#fee',
+    borderColor: '#fcc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 20,
+    width: '100%',
+    maxWidth: 300,
+  },
+  errorText: {
+    color: '#c00',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  retryButton: {
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: Colors.light.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  signInButton: {
+    backgroundColor: Colors.light.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 8,
+    marginTop: 32,
+    width: '100%',
+    maxWidth: 250,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  signInButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

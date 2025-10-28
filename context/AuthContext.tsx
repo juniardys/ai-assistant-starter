@@ -6,9 +6,11 @@ import { auth } from '../config/firebase';
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  error: string | null;
   signIn: () => Promise<AuthUser | null>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -50,12 +53,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (): Promise<AuthUser | null> => {
     try {
       setLoading(true);
+      setError(null);
       const authUser = await authService.signIn();
       if (authUser) {
         setUser(authUser);
       }
       return authUser;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during sign-in';
+      setError(errorMessage);
       console.error('Sign in error:', error);
       return null;
     } finally {
@@ -66,21 +72,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     try {
       setLoading(true);
+      setError(null);
       await authService.signOut();
       setUser(null);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during sign-out';
+      setError(errorMessage);
       console.error('Sign out error:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const clearError = (): void => {
+    setError(null);
+  };
+
   const value: AuthContextType = {
     user,
     loading,
+    error,
     signIn,
     signOut,
     isAuthenticated: !!user,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
